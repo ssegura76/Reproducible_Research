@@ -1,0 +1,148 @@
+---
+title: "PA1_template"
+author: "Sergio Segura Vargas"
+date: "Saturday, November 14, 2015"
+output: html_document
+---
+
+## Peer Asigment 1 ##
+  
+This is Peer Asigment 1 of Sergio Segura Vargas. I will put the text from the assigment and the the code to solve it.
+
+#### Part 1: Loading and preprocessing the data ####
+1. Load the data  
+```{r, echo=TRUE}
+data<-read.csv("C:/Users/FSC/Documents/R/activity.csv")
+```
+2. Process/transform the data (if necessary) into a format suitable for your analysis
+
+```{r, echo=TRUE}
+dataNoNA<-data[complete.cases(data),]
+```
+
+#### Part 2: What is mean total number of steps taken per day? ####
+
+1. Calculate the total number of steps taken per day
+
+```{r, echo=TRUE}
+library(survival)
+library(doBy)
+stepsPerDay<-summaryBy(steps ~ date, FUN=c(sum),data=dataNoNA)
+```
+
+2. Make a histogram of the total number of steps taken each day
+
+```{r, echo=TRUE}
+hist(stepsPerDay$steps.sum, main="Total number of steps taken each day", 
+     xlab="Total Steps by Day")
+```
+
+3. Calculate and report the mean and median of the total number of steps taken per day
+
+```{r, echo=TRUE}
+originalStepsMean<-mean(stepsPerDay$steps.sum)
+originalStepsMedian<-median(stepsPerDay$steps.sum)
+originalStepsMean
+originalStepsMedian
+```
+
+#### Part 3: What is the average daily activity pattern? ####
+
+1. Make a time series plot (i.e. type = "l") of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all days (y-axis)
+
+```{r, echo=TRUE}
+meanStepsByInterval<-summaryBy(steps ~ interval, FUN=c(mean),data=dataNoNA)
+plot(meanStepsByInterval$interval, meanStepsByInterval$steps.mean, type="l",
+     xlab="Interval",ylab="Average Steps", main="Average number of steps by 
+     Interval of the Day")
+```
+
+2. Which 5-minute interval, on average across all the days in the dataset, contains the maximum number of steps?
+
+```{r, echo=TRUE}
+library(plyr)
+head(arrange(meanStepsByInterval,desc(steps.mean)),1)
+```
+
+#### Part 4: Imputing missing values ####
+
+1. Calculate and report the total number of missing values in the dataset (i.e. the total number of rows with NAs)
+
+```{r, echo=TRUE}
+nrow(data)-sum(complete.cases(data))
+```
+
+2. Devise a strategy for filling in all of the missing values in the dataset. The strategy does not need to be sophisticated. For example, you could use the mean/median for that day, or the mean for that 5-minute interval, etc. 
+
+I will fill the dataset with the average value for all the days
+```{r, echo=TRUE}
+meanStepsByDay<-summaryBy(steps ~ date, FUN=c(mean),data=dataNoNA)
+meanByDay<-mean(meanStepsByDay$steps.mean)
+```
+
+3. Create a new dataset that is equal to the original dataset but with the missing data filled in.
+
+```{r, echo=TRUE}
+dataFilled<-data
+dataFilled$steps[is.na(dataFilled$steps)] <- meanByDay
+```
+
+4. Make a histogram of the total number of steps taken each day and Calculate and report the mean and median total number of steps taken per day. Do these values differ from the estimates from the first part of the assignment? What is the impact of imputing missing data on the estimates of the total daily number of steps? 
+
+Make a histogram of the total number of steps taken each day
+
+```{r, echo=TRUE}
+stepsPerDayFilled<-summaryBy(steps ~ date, FUN=c(sum),data=dataFilled)
+hist(stepsPerDayFilled$steps.sum, main="Total number of steps taken each day", 
+     xlab="Total Steps by Day")
+```
+
+Calculate and report the mean and median of the total number of steps taken per day
+
+```{r, echo=TRUE}
+filledStepsMean<-mean(stepsPerDayFilled$steps.sum)
+filledStepsMedian<-median(stepsPerDayFilled$steps.sum)
+filledStepsMean
+originalStepsMean
+filledStepsMedian
+originalStepsMedian
+```
+
+Because of the method of replace NA values, the mean shows no change but the median shows a small change
+
+
+#### Part 5: Are there differences in activity patterns between weekdays and weekends? ####
+
+1. Create a new factor variable in the dataset with two levels - "weekday" and "weekend" indicating whether a given date is a weekday or weekend day.
+
+```{r, echo=TRUE}
+library(lubridate)
+dataFilled$date<-ymd(dataFilled$date)
+dataFilled$dayIndicator<-weekdays(dataFilled$date,abbreviate=TRUE)
+dataFilled$dayIndicator[dataFilled$dayIndicator=="sáb" | dataFilled$dayIndicator=="dom"] <- "weekend"
+dataFilled$dayIndicator[dataFilled$dayIndicator!="weekend"] <- "weekday"
+dataFilled$dayIndicator <- as.factor(dataFilled$dayIndicator)
+```
+
+2. Make a panel plot containing a time series plot (i.e. type = "l") of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all weekday days or weekend days (y-axis). See the README file in the GitHub repository to see an example of what this plot should look like using simulated data.
+
+```{r, echo=TRUE}
+meanStepsByIntervalByWeekday<-summaryBy(steps ~ interval + dayIndicator, 
+                                        FUN=c(mean),data=dataFilled)
+par(mfrow=c(2,1), mar=c(5,4,1,1))
+with(subset(meanStepsByIntervalByWeekday, dayIndicator=="weekday"), plot(interval, 
+    steps.mean, type="l",xlab="Interval",ylab="Average Steps", 
+         main="Average number of steps by Interval of the Day for WEEKDAYS"))
+with(subset(meanStepsByIntervalByWeekday, dayIndicator=="weekend"), plot(interval, 
+    steps.mean, type="l",xlab="Interval",ylab="Average Steps", 
+        main="Average number of steps by Interval of the Day for WEEKENDS"))
+```
+
+#### Convert to HTML with knit2html() ####
+
+```{r, echo=TRUE, results="hide"}
+knit2html("C:/Users/FSC/Documents/R/Reproducible Research/PA1 template.Rmd")
+```
+
+
+
